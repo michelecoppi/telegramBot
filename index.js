@@ -274,7 +274,7 @@ bot.onText(/\/murder/, async (msg) => {
 
  });
 
- bot.onText(/\ora/, async (msg) => {
+ bot.onText(/\/ora/, async (msg) => {
   try {
     
     const currentTime = new Date().toLocaleTimeString('it-IT', { timeZone: "Europe/Rome" });

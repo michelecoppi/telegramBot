@@ -4,6 +4,8 @@ const fs = require('fs');
 let randomWords = require('random-words');
 require('dotenv/config');
 
+const port = process.env.PORT || 5000;
+
 
 const bot = new TelegramBot(process.env.API_KEY, {polling: true});
 

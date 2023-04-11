@@ -38,7 +38,7 @@ bot.onText(/\/fight (.+)/, async (msg, match) => {
     const userId = msg.from.id;
     const mentionedUsername = match[1];
     const options = {
-      "duration": 10,
+      "duration": 120,
       "close_date": Math.floor(Date.now() / 1000) + 120,
       "is_anonymous": false
     };
@@ -59,7 +59,7 @@ bot.onText(/\/fight (.+)/, async (msg, match) => {
 
 bot.onText(/\/findmymom/, async (msg) => {
   const chatId = msg.chat.id;
-  const query = randomWords()+' immage'; // La tua query di ricerca personalizzata
+  const query = randomWords()+' image'; // La tua query di ricerca personalizzata
   
   try {
     const apiKey = process.env.API_GOOGLE; // Inserisci la tua API key qui
@@ -147,7 +147,141 @@ bot.onText(/\/pisello/, (msg) => {
   bot.sendMessage(msg.chat.id, 'Il tuo pisello è lungo ' + rand + ' cm');
 });
 
-bot.onText(/\/ora/, (msg) => {
-  bot.sendMessage(msg.chat.id, 'Sono le ' + new Date().toLocaleTimeString());
-});
+function shuffle(array) {
+  let currentIndex = array.length;
+  let temporaryValue, randomIndex;
 
+  while (currentIndex > 0) {
+    randomIndex = Math.floor(Math.random() * currentIndex);
+    currentIndex--;
+
+    temporaryValue = array[currentIndex];
+    array[currentIndex] = array[randomIndex];
+    array[randomIndex] = temporaryValue;
+  }
+
+  return array;
+}
+
+function readMembersFromFile(file) {
+  return new Promise((resolve, reject) => {
+    fs.readFile(file, 'utf8', (err, data) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+      try {
+        const members = JSON.parse(data);
+        resolve(members);
+      } catch (err) {
+        reject(err);
+      }
+    });
+  });
+}
+
+
+
+bot.onText(/\/murder/, async (msg) => {
+  const  chatId = msg.chat.id;
+  const chatType = msg.chat.type;
+   
+  const sendMessageWithDelay = async (message, delay) => {
+    return new Promise(resolve => {
+      setTimeout(() => {
+        bot.sendMessage(chatId, message);
+        resolve();
+      }, delay);
+    });
+  }
+
+  const sendPollWithDelay = async (question, options, correct_answers, optionsDuration, pollDuration) => {
+    
+      setTimeout(() => {
+        
+        const pollOptions = {
+          is_anonymous: false,
+          close_date: optionsDuration,
+          is_closed: false,
+          quiz : true,
+          correct_answers: correct_answers
+        };
+      
+        bot.sendPoll(chatId, question,options.map(members => members) ,pollOptions)
+       
+          
+      }, pollDuration);
+  
+  }
+
+  if (chatType === 'group' || chatType === 'supergroup') {
+   try {
+    readMembersFromFile('members.json')
+    .then(members => {
+      readMembersFromFile('weapons.json').then(weapons => {
+        readMembersFromFile('defense.json').then(defense => {
+     shuffle(defense)
+     shuffle(members)
+      shuffle(weapons)
+     const cadavere = members[0];
+     const arma = weapons[0];
+     const difesa1 = defense[0];
+     const difesa2 = defense[1];
+     const difesa3 = defense[2];
+  
+     sendMessageWithDelay("è morto "+cadavere+" ucciso da "+ arma,1000)
+
+     const assassino = members[1];
+   console.log(assassino)
+     const sospettato1 = members[2];
+     const sospettato2 = members[3];
+
+     const sospettati= [assassino,sospettato1,sospettato2];
+     shuffle(sospettati)
+   
+     sendMessageWithDelay("i tre maggiori sospettati per l'omicidio di " + cadavere+" sono "+sospettati[0] + ", "+ sospettati[1]+", "+sospettati[2],1500)
+    
+      sendMessageWithDelay(sospettati[0]+" si difende dicendo che "+difesa1,2000)
+      sendMessageWithDelay(sospettati[1]+" si difende dicendo che "+difesa2,2400)
+      sendMessageWithDelay(sospettati[2]+" si difende dicendo che "+difesa3,2800)
+     
+    let correct_answers = []
+    const pollQuestion = "Chi è il killer?";
+    const pollOptions = sospettati;
+    sospettati.map((sospettato, index) => {
+      if (sospettato === assassino) {
+        correct_answers.push(index);
+      }
+    });
+    const pollOptionsDuration = 30;
+    const closeDate = Math.floor(Date.now() / 1000) + pollOptionsDuration;
+    const pollDuration = 3000;
+
+    sendPollWithDelay(pollQuestion, pollOptions,correct_answers, closeDate, pollDuration)
+
+    
+    sendMessageWithDelay("Il killer è " +assassino,35500)
+        })
+      });
+  })
+    } catch (error) {
+     console.error(error);
+     bot.sendMessage(chatId, 'C\'è stato un errore nell\'esecuzione del comando!');
+    }
+  }else{
+   bot.sendMessage(chatId, 'Il comando /murder funziona solo nei gruppi!');
+  }
+
+ });
+
+ bot.onText(/\ora/, async (msg) => {
+  try {
+    
+    const currentTime = new Date().toLocaleTimeString('it-IT', { timeZone: "Europe/Rome" });
+
+    bot.sendMessage(msg.chat.id, `L'ora corrente è: ${currentTime}`);
+  } catch (error) {
+    console.error(error);
+    bot.sendMessage(msg.chat.id, 'C\'è stato un errore nell\'esecuzione del comando!');
+  }
+});

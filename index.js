@@ -184,7 +184,7 @@ function readMembersFromFile(file) {
 
 bot.onText(/\/murder/, async (msg) => {
   const  chatId = msg.chat.id;
-  const chatType = msg.chat.type;
+  
    
   const sendMessageWithDelay = async (message, delay) => {
     return new Promise(resolve => {
@@ -214,7 +214,6 @@ bot.onText(/\/murder/, async (msg) => {
   
   }
 
-  if (chatType === 'group' || chatType === 'supergroup') {
    try {
     readMembersFromFile('members.json')
     .then(members => {
@@ -268,9 +267,6 @@ bot.onText(/\/murder/, async (msg) => {
      console.error(error);
      bot.sendMessage(chatId, 'C\'è stato un errore nell\'esecuzione del comando!');
     }
-  }else{
-   bot.sendMessage(chatId, 'Il comando /murder funziona solo nei gruppi!');
-  }
 
  });
 

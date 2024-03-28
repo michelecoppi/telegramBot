@@ -60,7 +60,7 @@ bot.onText(/\/fight (.+)/, async (msg, match) => {
 bot.onText(/\/findmymom/, async (msg) => {
   const chatId = msg.chat.id;
   const query = randomWords()+' image'; // La tua query di ricerca personalizzata
-  
+
   try {
     const apiKey = process.env.API_GOOGLE; // Inserisci la tua API key qui
     const cx = process.env.CX; // Inserisci il tuo cx qui
@@ -77,7 +77,7 @@ bot.onText(/\/findmymom/, async (msg) => {
       const imageUrl = randomItem.link;
       
       // Invia la foto all'utente
-      bot.sendPhoto(chatId, imageUrl, {caption: `Questa è la tua mamma`});
+      bot.sendPhoto(chatId, imageUrl, {caption: msg.from.first_name +` questa è la tua mamma`});
     } else {
       bot.sendMessage(chatId, 'Nessun risultato trovato.');
     }
@@ -144,7 +144,7 @@ bot.onText(/\/hungerGames (.+)/, async (msg, match) => {
 
 bot.onText(/\/pisello/, (msg) => {
   rand = Math.floor(Math.random() * 30) + 1;
-  bot.sendMessage(msg.chat.id, 'Il tuo pisello è lungo ' + rand + ' cm');
+  bot.sendMessage(msg.chat.id,msg.from.first_name + ' il tuo pisello è lungo ' + rand + ' cm');
 });
 
 function shuffle(array) {

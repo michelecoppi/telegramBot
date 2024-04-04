@@ -7,12 +7,12 @@ require('dotenv/config');
 const express = require('express');
 const app = express();
 
-const port = process.env.PORT || 5000;
+const port = 5000;
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });
 
-const bot = new TelegramBot(process.env.API_KEY, {polling: true});
+const bot = new TelegramBot(process.env.API_KEY, { polling: true });
 
 bot.onText(/\/ciao/, (msg) => {
   const chatId = msg.chat.id;
@@ -25,9 +25,66 @@ bot.onText(/\/ciao/, (msg) => {
     });
   });
   namePromise.then((nome) => {
-    bot.sendMessage(chatId, 'Ciao '+msg.from.first_name+'! You are a '+nome);
+    bot.sendMessage(chatId, 'Ciao ' + msg.from.first_name + '! You are a ' + nome);
   });
 
+});
+
+bot.onText(/\/weather (.+)/, async (msg, match) => {
+  const chatId = msg.chat.id;
+  const location = match[1].split(',');
+  const citySearch = location[0].trim();
+  const countrySearch = location.length > 1 ? location[1].trim() : '';
+  const apiKey = process.env.API_WEATHER;
+
+  try {
+    // Ottieni le coordinate della città
+    const geoApiUrl = `http://api.openweathermap.org/geo/1.0/direct?q=${citySearch}${countrySearch ? ',' + countrySearch : ''}&limit=1&appid=${apiKey}`;
+    const geoResponse = await axios.get(geoApiUrl);
+    const cityData = geoResponse.data[0];
+    if (!cityData) {
+      // Se la città non esiste, invia un messaggio di errore all'utente
+      bot.sendMessage(chatId, `La città "${citySearch}" ${countrySearch ? `nel paese "${countrySearch}" ` : ''}non è stata trovata.`);
+      return;
+    }
+    const lat = cityData.lat;
+    const lon = cityData.lon;
+    const country = cityData.country;
+    console.log(cityData);
+    const city = cityData.local_names.it ? cityData.local_names.it : cityData.name;
+
+
+    // Ottieni le previsioni del tempo utilizzando le coordinate
+    const weatherApiUrl = `http://api.openweathermap.org/data/3.0/onecall?lat=${lat}&lon=${lon}&appid=${apiKey}&lang=it&units=metric`;
+    const weatherResponse = await axios.get(weatherApiUrl);
+    const options = { timeZone: weatherResponse.data.timezone };
+    const currentDate = new Date().toLocaleString('it-IT', options);
+
+    // Dividi la stringa in data e ora
+    const [datePart, hourPart] = currentDate.split(", ");
+    // Dividi la parte della data in giorno, mese e anno
+    const [day, month, year] = datePart.split("/");
+    // Estrai solo l'ora e i minuti dalla parte dell'ora
+    const [hour, minutes] = hourPart.split(":").slice(0, 2); // Considera solo ore e minuti
+    // Componi la stringa nel nuovo formato
+    const formattedTime = `${day}/${month}/${year} ${hour}:${minutes}`;
+
+    const weather = weatherResponse.data.current.weather[0].description;
+    const temp = Math.ceil(weatherResponse.data.current.temp);
+    const feelsLike = Math.ceil(weatherResponse.data.current.feels_like);
+    const humidity = weatherResponse.data.current.humidity;
+    const windSpeed = weatherResponse.data.current.wind_speed;
+    const pressure = weatherResponse.data.current.pressure;
+    const uvIndex = weatherResponse.data.current.uvi;
+    const cloudiness = weatherResponse.data.current.clouds;
+
+    const message = `Oggi ${formattedTime} a ${city} (${country}) è ${weather} con una temperatura di ${temp}° e percepita di ${feelsLike}°, un umidità del ${humidity}%, un indice uv di ${uvIndex}, una nuvolosità del ${cloudiness}%, una pressione di ${pressure} hPa e la velocità del vento di ${windSpeed} m/s`;
+    bot.sendMessage(chatId, message);
+
+  } catch (error) {
+    console.error('Errore durante il recupero delle previsioni del tempo:', error);
+    bot.sendMessage(chatId, 'Si è verificato un errore durante il recupero delle previsioni del tempo.');
+  }
 });
 
 bot.onText(/\/fight (.+)/, async (msg, match) => {
@@ -59,25 +116,25 @@ bot.onText(/\/fight (.+)/, async (msg, match) => {
 
 bot.onText(/\/findmymom/, async (msg) => {
   const chatId = msg.chat.id;
-  const query = randomWords()+' image'; // La tua query di ricerca personalizzata
+  const query = randomWords() + ' image'; // La tua query di ricerca personalizzata
 
   try {
     const apiKey = process.env.API_GOOGLE; // Inserisci la tua API key qui
     const cx = process.env.CX; // Inserisci il tuo cx qui
     const url = `https://www.googleapis.com/customsearch/v1?cx=${cx}&key=${apiKey}&q=${query}&searchType=image`;
-  
+
     const response = await axios.get(url);
     const items = response.data.items;
-    
+
     if (items && items.length > 0) {
       // Prendi una foto a caso dalla lista di risultati
       const randomIndex = Math.floor(Math.random() * items.length);
       const randomItem = items[randomIndex];
-      
+
       const imageUrl = randomItem.link;
-      
+
       // Invia la foto all'utente
-      bot.sendPhoto(chatId, imageUrl, {caption: msg.from.first_name +` questa è la tua mamma`});
+      bot.sendPhoto(chatId, imageUrl, { caption: msg.from.first_name + ` questa è la tua mamma` });
     } else {
       bot.sendMessage(chatId, 'Nessun risultato trovato.');
     }
@@ -90,12 +147,12 @@ bot.onText(/\/findmymom/, async (msg) => {
 bot.onText(/\/hungerGames (.+)/, async (msg, match) => {
   const chatId = msg.chat.id;
   const chatType = msg.chat.type;
-  const arrayUtenti = msg.text.split(' ').slice(1); 
+  const arrayUtenti = msg.text.split(' ').slice(1);
   const nomiUtenti = arrayUtenti.map(utente => utente.substring(1));
   let count = 0;
   const taggedUsers = [];
- 
- 
+
+
   if (chatType === 'group' || chatType === 'supergroup') {
     // Cerca gli utenti menzionati e aggiungi gli oggetti User all'array taggedUsers
     msg.entities.forEach((entity) => {
@@ -129,7 +186,7 @@ bot.onText(/\/hungerGames (.+)/, async (msg, match) => {
     while (participants.length > 1) {
       const loserIndex = Math.floor(Math.random() * participants.length);
       const loserId = participants.splice(loserIndex, 1)[0];
-      await sendMessageWithDelay(`L'utente @${loserId} è stato ucciso da @`+participants[Math.floor(Math.random() * participants.length)], 1000); // Invia il messaggio con una pausa di 1 secondo
+      await sendMessageWithDelay(`L'utente @${loserId} è stato ucciso da @` + participants[Math.floor(Math.random() * participants.length)], 1000); // Invia il messaggio con una pausa di 1 secondo
     }
 
     winner = participants[0];
@@ -144,7 +201,7 @@ bot.onText(/\/hungerGames (.+)/, async (msg, match) => {
 
 bot.onText(/\/pisello/, (msg) => {
   rand = Math.floor(Math.random() * 30) + 1;
-  bot.sendMessage(msg.chat.id,msg.from.first_name + ' il tuo pisello è lungo ' + rand + ' cm');
+  bot.sendMessage(msg.chat.id, msg.from.first_name + ' il tuo pisello è lungo ' + rand + ' cm');
 });
 
 function shuffle(array) {
@@ -183,9 +240,9 @@ function readMembersFromFile(file) {
 
 
 bot.onText(/\/murder/, async (msg) => {
-  const  chatId = msg.chat.id;
-  
-   
+  const chatId = msg.chat.id;
+
+
   const sendMessageWithDelay = async (message, delay) => {
     return new Promise(resolve => {
       setTimeout(() => {
@@ -196,83 +253,83 @@ bot.onText(/\/murder/, async (msg) => {
   }
 
   const sendPollWithDelay = async (question, options, correct_answers, optionsDuration, pollDuration) => {
-    
-      setTimeout(() => {
-        
-        const pollOptions = {
-          is_anonymous: false,
-          close_date: optionsDuration,
-          is_closed: false,
-          quiz : true,
-          correct_answers: correct_answers
-        };
-      
-        bot.sendPoll(chatId, question,options.map(members => members) ,pollOptions)
-       
-          
-      }, pollDuration);
-  
+
+    setTimeout(() => {
+
+      const pollOptions = {
+        is_anonymous: false,
+        close_date: optionsDuration,
+        is_closed: false,
+        quiz: true,
+        correct_answers: correct_answers
+      };
+
+      bot.sendPoll(chatId, question, options.map(members => members), pollOptions)
+
+
+    }, pollDuration);
+
   }
 
-   try {
-    readMembersFromFile('members.json')
-    .then(members => {
-      readMembersFromFile('weapons.json').then(weapons => {
-        readMembersFromFile('defense.json').then(defense => {
-     shuffle(defense)
-     shuffle(members)
-      shuffle(weapons)
-     const cadavere = members[0];
-     const arma = weapons[0];
-     const difesa1 = defense[0];
-     const difesa2 = defense[1];
-     const difesa3 = defense[2];
-  
-     sendMessageWithDelay("è morto "+cadavere+" ucciso da "+ arma,1000)
-
-     const assassino = members[1];
-   console.log(assassino)
-     const sospettato1 = members[2];
-     const sospettato2 = members[3];
-
-     const sospettati= [assassino,sospettato1,sospettato2];
-     shuffle(sospettati)
-   
-     sendMessageWithDelay("i tre maggiori sospettati per l'omicidio di " + cadavere+" sono "+sospettati[0] + ", "+ sospettati[1]+", "+sospettati[2],1500)
-    
-      sendMessageWithDelay(sospettati[0]+" si difende dicendo che "+difesa1,2000)
-      sendMessageWithDelay(sospettati[1]+" si difende dicendo che "+difesa2,2400)
-      sendMessageWithDelay(sospettati[2]+" si difende dicendo che "+difesa3,2800)
-     
-    let correct_answers = []
-    const pollQuestion = "Chi è il killer?";
-    const pollOptions = sospettati;
-    sospettati.map((sospettato, index) => {
-      if (sospettato === assassino) {
-        correct_answers.push(index);
-      }
-    });
-    const pollOptionsDuration = 30;
-    const closeDate = Math.floor(Date.now() / 1000) + pollOptionsDuration;
-    const pollDuration = 3000;
-
-    sendPollWithDelay(pollQuestion, pollOptions,correct_answers, closeDate, pollDuration)
-
-    
-    sendMessageWithDelay("Il killer è " +assassino,35500)
-        })
-      });
-  })
-    } catch (error) {
-     console.error(error);
-     bot.sendMessage(chatId, 'C\'è stato un errore nell\'esecuzione del comando!');
-    }
-
- });
-
- bot.onText(/\/ora/, async (msg) => {
   try {
-    
+    readMembersFromFile('members.json')
+      .then(members => {
+        readMembersFromFile('weapons.json').then(weapons => {
+          readMembersFromFile('defense.json').then(defense => {
+            shuffle(defense)
+            shuffle(members)
+            shuffle(weapons)
+            const cadavere = members[0];
+            const arma = weapons[0];
+            const difesa1 = defense[0];
+            const difesa2 = defense[1];
+            const difesa3 = defense[2];
+
+            sendMessageWithDelay("è morto " + cadavere + " ucciso da " + arma, 1000)
+
+            const assassino = members[1];
+            console.log(assassino)
+            const sospettato1 = members[2];
+            const sospettato2 = members[3];
+
+            const sospettati = [assassino, sospettato1, sospettato2];
+            shuffle(sospettati)
+
+            sendMessageWithDelay("i tre maggiori sospettati per l'omicidio di " + cadavere + " sono " + sospettati[0] + ", " + sospettati[1] + ", " + sospettati[2], 1500)
+
+            sendMessageWithDelay(sospettati[0] + " si difende dicendo che " + difesa1, 2000)
+            sendMessageWithDelay(sospettati[1] + " si difende dicendo che " + difesa2, 2400)
+            sendMessageWithDelay(sospettati[2] + " si difende dicendo che " + difesa3, 2800)
+
+            let correct_answers = []
+            const pollQuestion = "Chi è il killer?";
+            const pollOptions = sospettati;
+            sospettati.map((sospettato, index) => {
+              if (sospettato === assassino) {
+                correct_answers.push(index);
+              }
+            });
+            const pollOptionsDuration = 30;
+            const closeDate = Math.floor(Date.now() / 1000) + pollOptionsDuration;
+            const pollDuration = 3000;
+
+            sendPollWithDelay(pollQuestion, pollOptions, correct_answers, closeDate, pollDuration)
+
+
+            sendMessageWithDelay("Il killer è " + assassino, 35500)
+          })
+        });
+      })
+  } catch (error) {
+    console.error(error);
+    bot.sendMessage(chatId, 'C\'è stato un errore nell\'esecuzione del comando!');
+  }
+
+});
+
+bot.onText(/\/ora/, async (msg) => {
+  try {
+
     const currentTime = new Date().toLocaleTimeString('it-IT', { timeZone: "Europe/Rome" });
 
     bot.sendMessage(msg.chat.id, `L'ora corrente è: ${currentTime}`);
